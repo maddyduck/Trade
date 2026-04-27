@@ -1,0 +1,72 @@
+{% extends "dashboard/_base.html" %}
+{% set active_tab = 'services' %}
+{% block title %}Services — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="row-sb">
+  <h1>Your services</h1>
+  <a href="{{ url_for('dashboard.services_new') }}" class="btn btn-primary" style="min-height:36px; padding:8px 14px;">+ Add</a>
+</div>
+<p class="muted">What customers see on your booking page. Tap to edit.</p>
+
+{% if show_templates and templates %}
+<div class="card mb-3" style="background: var(--cream-deep);">
+  <div class="strong">Quick start</div>
+  <p class="muted" style="font-size:13px; margin-top:4px;">
+    Tick the ones you offer and add them all at once. You can edit each one after.
+  </p>
+  <form method="post" action="{{ url_for('dashboard.services_from_template') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="stack mt-2">
+      {% for t in templates %}
+      <label class="template-pick">
+        <div class="row" style="gap: 10px; align-items: flex-start;">
+          <input type="checkbox" name="template" value="{{ t.key }}" style="margin-top:4px;">
+          <div style="flex:1;">
+            <div class="row-between">
+              <div class="strong">{{ t.icon }} {{ t.name }}</div>
+              <div class="strong">£{{ '%.0f' % (t.deposit_pence / 100) }}</div>
+            </div>
+            <div class="muted">{{ t.description }}</div>
+            <div class="muted">{{ t.duration_minutes }} min{% if t.is_emergency %} · <span class="emergency-pill">Emergency</span>{% endif %}</div>
+          </div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-primary btn-block mt-3">Add selected services</button>
+    <p class="muted text-center mt-2" style="font-size:12px;">
+      Or <a href="{{ url_for('dashboard.services_new') }}">add a custom service from scratch</a>.
+    </p>
+  </form>
+</div>
+{% endif %}
+
+{% if services %}
+<div class="stack mt-3">
+  {% for s in services %}
+  <a href="{{ url_for('dashboard.services_edit', service_id=s.id) }}" class="service-card" style="cursor:pointer;{% if s.is_emergency %} border-color:#B91C1C;{% endif %}">
+    <div class="icon">{{ s.icon or '🔧' }}</div>
+    <div>
+      <div class="row" style="gap:6px; align-items:center;">
+        <div class="name">{{ s.name }}</div>
+        {% if s.is_emergency %}<span class="emergency-pill">Emergency</span>{% endif %}
+      </div>
+      {% if s.description %}<div class="desc">{{ s.description }}</div>{% endif %}
+      <div class="meta">
+        {{ s.duration_minutes }} min
+        {% if not s.is_active %} · <em>Paused</em>{% endif %}
+      </div>
+    </div>
+    <div class="text-right">
+      <div class="price">{{ s.deposit_pence | pence_to_pounds }}</div>
+      <div class="sub">→</div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% elif not show_templates %}
+<div class="card text-center muted" style="padding:32px 16px;">
+  No services yet. <a href="{{ url_for('dashboard.services_new') }}">Add your first</a>.
+</div>
+{% endif %}
+{% endblock %}

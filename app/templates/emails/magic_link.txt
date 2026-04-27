@@ -1,0 +1,7 @@
+Manage your booking with {{ booking.trade.business_name }}:
+
+{{ link }}
+
+(This link works for 24 hours. Reference {{ booking.reference }}.)
+
+— Sorted

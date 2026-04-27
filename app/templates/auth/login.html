@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_form.html" import render_field, render_checkbox %}
+{% block title %}Sign in — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<h1>Sign in</h1>
+<p class="muted">Manage your bookings and settings.</p>
+
+<form method="post" class="stack mt-3">
+  {{ form.hidden_tag() }}
+  {{ render_field(form.email, autocomplete="email", inputmode="email") }}
+  {{ render_field(form.password, autocomplete="current-password") }}
+  {{ render_checkbox(form.remember_me) }}
+  <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+</form>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('auth.forgot_password') }}" class="muted">Forgot password?</a>
+</div>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('auth.signup') }}" class="muted">New here? Create an account →</a>
+</div>
+{% endblock %}

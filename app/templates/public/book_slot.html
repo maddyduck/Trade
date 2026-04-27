@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Pick a time — {{ trade.business_name }}{% endblock %}
+{% block content %}
+<div class="row mb-2">
+  <a href="{{ url_for('public.trade_page', slug=trade.slug) }}" class="btn btn-ghost" style="min-height:36px; padding:6px 12px;">← Back</a>
+  <div class="muted" style="font-size:12px; flex:1; text-align:center;">Step 1 of 3 — Pick a time</div>
+  <div style="width:70px;"></div>
+</div>
+
+<div class="card mb-3">
+  <div class="row">
+    <div style="font-size:22px;">{{ service.icon or '🔧' }}</div>
+    <div style="flex:1;">
+      <div class="strong">{{ service.name }}</div>
+      <div class="muted" style="font-size:12px;">{{ service.duration_minutes }} min · {{ service.deposit_pence | pence_to_pounds }} deposit</div>
+    </div>
+  </div>
+</div>
+
+{% set first_with_slots = namespace(idx=-1) %}
+{% for d in day_slots %}
+  {% if d.slots and first_with_slots.idx == -1 %}
+    {% set first_with_slots.idx = loop.index0 %}
+  {% endif %}
+{% endfor %}
+
+<div class="section-label">Choose a day</div>
+<div class="day-strip mb-3" id="day-strip">
+  {% for d in day_slots %}
+    <button type="button"
+            class="day-pill {% if loop.index0 == first_with_slots.idx %}day-pill-active{% endif %} {% if d.is_empty %}day-pill-disabled{% endif %}"
+            data-day-idx="{{ loop.index0 }}"
+            {% if d.is_empty %}disabled{% endif %}>
+      <div class="dow">
+        {% if loop.index0 == 0 %}Today{% elif loop.index0 == 1 %}Tomorrow{% else %}{{ d.local_date.strftime('%a') }}{% endif %}
+      </div>
+      <div class="dom">{{ d.local_date.strftime('%-d') }}</div>
+      <div class="mon">{{ d.local_date.strftime('%b') }}</div>
+    </button>
+  {% endfor %}
+</div>
+
+<div class="section-label">Available slots</div>
+{% for d in day_slots %}
+<div class="day-slots" id="day-{{ loop.index0 }}" style="display: {% if loop.index0 == first_with_slots.idx %}block{% else %}none{% endif %};">
+  {% if d.slots %}
+    <div class="slot-grid">
+      {% for s in d.slots %}
+      <a class="slot-btn"
+         href="{{ url_for('public.book_details', slug=trade.slug, service_id=service.id, start_at=s.start_utc.isoformat()) }}">
+        {{ s.display }}
+      </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card text-center muted">No slots this day.</div>
+  {% endif %}
+</div>
+{% endfor %}
+
+<script>
+  document.querySelectorAll('[data-day-idx]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      document.querySelectorAll('[data-day-idx]').forEach(b => b.classList.remove('day-pill-active'));
+      btn.classList.add('day-pill-active');
+      document.querySelectorAll('.day-slots').forEach(d => d.style.display = 'none');
+      document.getElementById('day-' + btn.dataset.dayIdx).style.display = 'block';
+    });
+  });
+</script>
+{% endblock %}

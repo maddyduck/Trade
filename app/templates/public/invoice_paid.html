@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Payment received — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="success-hero">
+  <div class="success-tick">✓</div>
+  <h1>Payment received</h1>
+  <p class="muted">
+    Thanks for paying invoice {{ invoice.number }}. {{ invoice.trade.business_name }} has been notified.
+  </p>
+</div>
+
+<div class="card mt-3 text-center">
+  <p>You'll get a receipt by email within a few minutes.</p>
+  <p class="muted" style="font-size:12px;">
+    If anything looks wrong, just reply to the original invoice email.
+  </p>
+</div>
+{% endblock %}

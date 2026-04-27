@@ -1,0 +1,247 @@
+{% extends "dashboard/_base.html" %}
+{% set active_tab = 'today' %}
+{% block title %}{{ booking.reference }} — {{ booking.customer_name }}{% endblock %}
+{% block content %}
+<div class="row mb-2">
+  <a href="{{ url_for('dashboard.today') }}" class="btn btn-ghost" style="min-height:36px; padding:6px 12px;">← Back</a>
+  <div class="mono muted" style="font-size:12px; flex:1; text-align:center;">{{ booking.reference }}</div>
+  <div style="width:70px;"></div>
+</div>
+
+{% set flow = ['booked', 'on_the_way', 'arrived', 'in_progress', 'complete'] %}
+{% set s = booking.status.value %}
+{% set is_terminal = s in ['complete', 'cancelled', 'no_show'] %}
+
+{% if not is_terminal and s in flow %}
+<div class="card mb-3">
+  <div class="stepper">
+    {% for step in flow %}
+      {% set idx = loop.index0 %}
+      {% set cur_idx = flow.index(s) %}
+      <div class="stepper-item">
+        <div class="stepper-dot {% if idx < cur_idx %}done{% elif idx == cur_idx %}current{% endif %}">
+          {% if idx < cur_idx %}✓{% endif %}
+        </div>
+        <div class="stepper-label {% if idx <= cur_idx %}done{% endif %}">
+          {% if step == 'booked' %}Booked
+          {% elif step == 'on_the_way' %}On the way
+          {% elif step == 'arrived' %}Arrived
+          {% elif step == 'in_progress' %}In progress
+          {% elif step == 'complete' %}Complete
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% elif s == 'complete' %}
+<div class="flash flash-success mb-3"><strong>✓ Complete</strong> — job marked as finished.</div>
+{% elif s == 'no_show' %}
+<div class="flash flash-error mb-3"><strong>× No-show</strong> — deposit retained per policy.</div>
+{% elif s == 'cancelled' %}
+<div class="flash flash-info mb-3"><strong>Cancelled</strong> — booking closed.</div>
+{% endif %}
+
+<div class="card mb-2">
+  <div class="row">
+    <div class="trade-avatar trade-avatar-sm" style="background: linear-gradient(135deg, #D97706, #B45309);">
+      {% set parts = booking.customer_name.split() %}
+      {{ (parts[0][0] + (parts[-1][0] if parts|length > 1 else ''))|upper }}
+    </div>
+    <div style="flex:1; min-width:0;">
+      <div class="row" style="gap:6px; align-items: center;">
+        <div class="strong">{{ booking.customer_name }}</div>
+        {% set prior = prior_booking_count(booking.trade_id, booking.customer_email, booking.customer_phone, booking.id) %}
+        {% if prior > 0 %}
+        <span class="badge badge-returning-pill">↻ Returning · {{ prior + 1 }}{% if (prior + 1) % 10 == 1 and (prior + 1) % 100 != 11 %}st{% elif (prior + 1) % 10 == 2 and (prior + 1) % 100 != 12 %}nd{% elif (prior + 1) % 10 == 3 and (prior + 1) % 100 != 13 %}rd{% else %}th{% endif %} job</span>
+        {% endif %}
+      </div>
+      <div class="mono muted" style="font-size:12px;">{{ booking.customer_phone }}</div>
+    </div>
+  </div>
+  <div class="row mt-2" style="gap:6px;">
+    <a href="tel:{{ booking.customer_phone }}" class="btn btn-ghost" style="flex:1;">📞 Call</a>
+    <a href="sms:{{ booking.customer_phone }}" class="btn btn-ghost" style="flex:1;">💬 Text</a>
+  </div>
+</div>
+
+<div class="summary mb-2">
+  <div class="summary-row">
+    <div class="summary-label">Service</div>
+    <div class="summary-value">{{ booking.service.icon or '🔧' }} {{ booking.service.name }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">When</div>
+    <div class="summary-value">{{ booking.start_at | local_dt('%a %d %b · %H:%M') }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Duration</div>
+    <div class="summary-value">{{ booking.service.duration_minutes }} min</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Address</div>
+    <div class="summary-value">
+      {% if booking.customer_address %}{{ booking.customer_address }}<br>{% endif %}
+      <span class="muted" style="font-weight:400;">{{ booking.customer_postcode }}</span>
+    </div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Deposit</div>
+    <div class="summary-value">
+      {{ booking.deposit_pence | pence_to_pounds }}
+      {% if booking.is_paid %}<span class="badge badge-paid" style="margin-left:6px;">PAID</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+{% if booking.job_notes %}
+<div class="card mb-2">
+  <div class="section-label">What they said</div>
+  <div style="font-size:14px;">"{{ booking.job_notes }}"</div>
+</div>
+{% endif %}
+
+{% if booking.photos %}
+<div class="card mb-2">
+  <div class="section-label">Photos from customer ({{ booking.photos|length }})</div>
+  <div class="photo-grid mt-1">
+    {% for p in booking.photos %}
+    <a href="{{ p.public_url }}" target="_blank" rel="noopener" class="photo-thumb">
+      <img src="{{ p.thumbnail_url or p.public_url }}" alt="">
+    </a>
+    {% endfor %}
+  </div>
+  <p class="muted mt-2" style="font-size:12px;">Tap to view full size.</p>
+</div>
+{% endif %}
+
+{% if not is_terminal %}
+<div class="sticky-cta">
+  <div class="row" style="gap:8px;">
+    {% if s == 'booked' %}
+    <form method="post" action="{{ url_for('dashboard.mark_no_show', booking_id=booking.id) }}"
+          onsubmit="return confirm('Mark as no-show? Deposit will be retained per your policy.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger-outline">No-show</button>
+    </form>
+    {% endif %}
+
+    {% if s == 'booked' %}
+    <button type="button" id="show-otw-form" class="btn btn-primary btn-block" style="flex:1;">
+      I'm on my way →
+    </button>
+    {% elif s in flow and s != 'complete' %}
+    <form method="post" action="{{ url_for('dashboard.advance_booking', booking_id=booking.id) }}" style="flex:1;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary btn-block">
+        {% if s == 'on_the_way' %}I've arrived →
+        {% elif s == 'arrived' %}Start job →
+        {% elif s == 'in_progress' %}Mark complete ✓
+        {% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if s == 'booked' %}
+  <form method="post" action="{{ url_for('dashboard.advance_booking', booking_id=booking.id) }}"
+        id="otw-form" class="card mt-2" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="strong">When will you arrive?</div>
+    <p class="muted" style="font-size:12px;">
+      Customer gets a text with this ETA. Optional live tracking shows your position on a map.
+    </p>
+    <div class="row" style="gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+      {% for mins in [10, 20, 30, 45, 60] %}
+      <label class="eta-chip">
+        <input type="radio" name="eta_minutes" value="{{ mins }}" {% if mins == 20 %}checked{% endif %}>
+        <span>{{ mins }} min</span>
+      </label>
+      {% endfor %}
+    </div>
+    <label class="checkbox-row mt-2">
+      <input type="checkbox" name="share_location" value="on">
+      <span>Share live location for this trip</span>
+    </label>
+    <p class="muted" style="font-size:11px;">
+      Your phone will ask permission. Location data is deleted when you tap "I've arrived".
+    </p>
+    <button type="submit" class="btn btn-primary btn-block mt-2">Send to customer →</button>
+  </form>
+
+  <script>
+    document.getElementById('show-otw-form')?.addEventListener('click', () => {
+      document.getElementById('show-otw-form').style.display = 'none';
+      document.getElementById('otw-form').style.display = 'block';
+    });
+  </script>
+  {% endif %}
+
+  {% if s == 'on_the_way' %}
+    {% set active_session = booking.tracking_sessions | selectattr('status.value', 'eq', 'active') | first %}
+    {% if active_session %}
+    <div class="card card-flat mt-2" style="font-size:13px;">
+      <strong>Live tracking is on.</strong> Customer sees you on a map.
+      Tracking ends when you tap "I've arrived".
+    </div>
+    <script>
+      // Browser geolocation watcher — pings server every ~30s while on this page.
+      (function() {
+        if (!navigator.geolocation) return;
+        const TOKEN = "{{ active_session.public_token }}";
+        const PING_URL = `/dashboard/tracking/${TOKEN}/ping`;
+
+        function send(pos) {
+          fetch(PING_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            },
+            body: JSON.stringify({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy_m: pos.coords.accuracy,
+              heading_deg: pos.coords.heading,
+            }),
+          }).catch(() => {});
+        }
+        function onErr(e) { console.debug("geo error", e); }
+
+        navigator.geolocation.getCurrentPosition(send, onErr, { enableHighAccuracy: true, timeout: 10000 });
+        setInterval(() => {
+          navigator.geolocation.getCurrentPosition(send, onErr, { enableHighAccuracy: true, timeout: 10000 });
+        }, 30000);
+      })();
+    </script>
+    {% endif %}
+  {% endif %}
+
+  {% if s != 'complete' %}
+  <form method="post" action="{{ url_for('dashboard.cancel_by_trade', booking_id=booking.id) }}" class="mt-2"
+        onsubmit="return confirm('Cancel this booking? Consider refund policy.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-ghost btn-block" style="color: var(--red);">Cancel booking</button>
+  </form>
+  {% endif %}
+
+  {% if s == 'complete' %}
+    {% set existing_invoice = booking.invoices | selectattr('status.value', 'ne', 'void') | first %}
+    {% if existing_invoice %}
+    <a href="{{ url_for('invoices.show', invoice_id=existing_invoice.id) }}"
+       class="btn btn-primary btn-block mt-2">
+      View invoice {{ existing_invoice.number }} →
+    </a>
+    {% else %}
+    <a href="{{ url_for('invoices.new', booking_id=booking.id) }}"
+       class="btn btn-primary btn-block mt-2">
+      Create invoice →
+    </a>
+    <p class="muted text-center mt-1" style="font-size:12px;">
+      The deposit you've already received will be deducted automatically.
+    </p>
+    {% endif %}
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

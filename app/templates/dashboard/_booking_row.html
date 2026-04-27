@@ -1,0 +1,33 @@
+{# Expects: b (booking) #}
+<a href="{{ url_for('dashboard.booking_detail', booking_id=b.id) }}" class="booking-row">
+  <div>
+    <div class="time">{{ b.start_at | local_time }}</div>
+    <div class="time-sub">{{ b.service.duration_minutes }}m</div>
+  </div>
+  <div class="divider"></div>
+  <div style="flex:1; min-width:0;">
+    <div class="row" style="gap:8px;">
+      <span style="font-size:16px;">{{ b.service.icon or '🔧' }}</span>
+      <div class="who" style="flex:1;">{{ b.customer_name }}</div>
+      {% if is_returning_customer(b) %}
+        <span class="badge badge-returning" title="Returning customer">↻</span>
+      {% endif %}
+      {% if b.is_recently_booked and b.status.value == 'booked' %}
+        <span class="badge badge-new" style="background:var(--amber); color:white;">NEW</span>
+      {% endif %}
+    </div>
+    <div class="what">{{ b.service.name }}</div>
+    <div class="where">📍 {{ b.customer_postcode }} · {{ b.deposit_pence | pence_to_pounds }} paid</div>
+  </div>
+  <div>
+    {% set s = b.status.value %}
+    {% if s == 'booked' %}<span class="status status-amber">Booked</span>
+    {% elif s == 'on_the_way' %}<span class="status status-blue">On the way</span>
+    {% elif s == 'arrived' %}<span class="status status-indigo">Arrived</span>
+    {% elif s == 'in_progress' %}<span class="status status-emerald">In progress</span>
+    {% elif s == 'complete' %}<span class="status status-stone">Complete</span>
+    {% elif s == 'no_show' %}<span class="status status-red">No-show</span>
+    {% elif s == 'cancelled' %}<span class="status status-stone">Cancelled</span>
+    {% endif %}
+  </div>
+</a>

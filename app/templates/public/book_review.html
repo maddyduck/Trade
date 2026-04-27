@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Review and pay — {{ trade.business_name }}{% endblock %}
+{% block content %}
+<div class="row mb-2">
+  <a href="{{ url_for('public.book_details', slug=trade.slug, service_id=service.id) }}" class="btn btn-ghost" style="min-height:36px; padding:6px 12px;">← Back</a>
+  <div class="muted" style="font-size:12px; flex:1; text-align:center;">Step 3 of 3 — Review and pay</div>
+  <div style="width:70px;"></div>
+</div>
+
+<h2>Check everything, then pay your deposit.</h2>
+<p class="muted" style="font-size:13px;">The slot isn't held until you pay. Deposit comes off the final bill.</p>
+
+<div class="price-callout mb-3">
+  <div class="row-sb">
+    <div>
+      <div class="muted" style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;">Deposit to pay</div>
+      <div class="big">{{ service.deposit_pence | pence_to_pounds }}</div>
+    </div>
+    <div class="badge badge-paid">SECURE · STRIPE</div>
+  </div>
+</div>
+
+<div class="summary mb-3">
+  <div class="summary-row">
+    <div class="summary-label">Trade</div>
+    <div class="summary-value">{{ trade.business_name }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Service</div>
+    <div class="summary-value">{{ service.name }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">When</div>
+    <div class="summary-value">{{ start_at | local_dt('%a %d %b · %H:%M') }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Duration</div>
+    <div class="summary-value">{{ service.duration_minutes }} min</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Address</div>
+    <div class="summary-value">
+      {% if draft.customer_address %}{{ draft.customer_address }}, {% endif %}{{ draft.customer_postcode }}
+    </div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Contact</div>
+    <div class="summary-value">
+      {{ draft.customer_name }}<br>
+      <span class="muted" style="font-weight:400;">{{ draft.customer_phone }} · {{ draft.customer_email }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="card card-flat mb-3" style="font-size:12px;">
+  <strong>Cancellation:</strong>
+  {% if trade.cancellation_policy == "24h_full" %}
+    Full refund if you cancel at least 24 hours before your slot.
+  {% elif trade.cancellation_policy == "24h_partial" %}
+    Full refund 24h+ before, 50% if you cancel within 24h, none under 2h.
+  {% else %}
+    Deposit is non-refundable.
+  {% endif %}
+</div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-primary btn-block">
+    Pay {{ service.deposit_pence | pence_to_pounds }} and confirm →
+  </button>
+  <div class="text-center muted mt-2" style="font-size:11px;">
+    You'll be taken to Stripe to complete payment.
+  </div>
+</form>
+{% endblock %}

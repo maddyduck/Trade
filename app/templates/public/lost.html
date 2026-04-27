@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_form.html" import render_field %}
+{% block title %}Lost your booking reference?{% endblock %}
+{% block content %}
+<h1>Send me a link</h1>
+<p class="muted">Enter the email or phone you used to book. If we find a booking, we'll email you a secure link.</p>
+
+<form method="post" class="stack mt-3">
+  {{ form.hidden_tag() }}
+  {{ render_field(form.contact, placeholder="sarah@example.com or 07712...") }}
+  <button type="submit" class="btn btn-primary btn-block">Send link →</button>
+</form>
+
+<p class="muted text-center mt-3" style="font-size:12px;">
+  Links expire after 24 hours and only show that one booking.
+</p>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('public.find_booking') }}" class="muted" style="font-size:13px;">
+    ← Got your reference back? Use it instead
+  </a>
+</div>
+{% endblock %}

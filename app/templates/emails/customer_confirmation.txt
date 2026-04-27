@@ -1,0 +1,15 @@
+You're booked in with {{ booking.trade.business_name }}.
+
+Reference: {{ booking.reference }}
+
+What: {{ booking.service.name }}
+When: {{ booking.start_at.strftime('%A %d %B at %H:%M') }}
+Where: {% if booking.customer_address %}{{ booking.customer_address }}, {% endif %}{{ booking.customer_postcode }}
+Deposit paid: {{ booking.deposit_pence | pence_to_pounds }}
+
+Need to reschedule or cancel?
+{{ manage_link }}
+
+Questions: call {{ booking.trade.contact_name.split()[0] }} on {{ booking.trade.phone }}.
+
+— Sorted

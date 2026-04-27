@@ -1,0 +1,24 @@
+{% extends "dashboard/_base.html" %}
+{% from "_form.html" import render_field, render_checkbox %}
+{% set active_tab = 'services' %}
+{% block title %}{% if service %}Edit service{% else %}Add service{% endif %}{% endblock %}
+{% block content %}
+<div class="row mb-2">
+  <a href="{{ url_for('dashboard.services') }}" class="btn btn-ghost" style="min-height:36px; padding:6px 12px;">← Back</a>
+</div>
+
+<h1>{% if service %}Edit service{% else %}Add a service{% endif %}</h1>
+
+<form method="post" class="stack mt-3">
+  {{ form.hidden_tag() }}
+  {{ render_field(form.name, placeholder="Emergency leak repair") }}
+  {{ render_field(form.description, placeholder="What it covers — helps the customer decide.") }}
+  {{ render_field(form.icon, placeholder="🔧", help="An emoji for the booking page.") }}
+  <div class="grid-2">
+    {{ render_field(form.duration_minutes, help="Minutes on-site.") }}
+    {{ render_field(form.deposit_pounds, help="To secure the booking.") }}
+  </div>
+  {{ render_checkbox(form.is_active) }}
+  <button type="submit" class="btn btn-primary btn-block">Save</button>
+</form>
+{% endblock %}

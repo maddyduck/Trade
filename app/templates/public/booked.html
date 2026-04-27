@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}You're booked in — {{ booking.reference }}{% endblock %}
+{% block content %}
+<div class="success-hero">
+  <div class="success-circle">✓</div>
+  <h1 class="mt-3">You're booked in.</h1>
+  <p class="muted">{{ trade.contact_name.split()[0] }} has your details and will be in touch if anything changes.</p>
+</div>
+
+<div class="card mb-3">
+  <div class="row-sb">
+    <div>
+      <div class="muted" style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;">Reference</div>
+      <div class="mono strong" style="font-size:18px;">{{ booking.reference }}</div>
+    </div>
+    <div class="badge badge-paid">PAID</div>
+  </div>
+</div>
+
+<div class="summary mb-3">
+  <div class="summary-row">
+    <div class="summary-label">Service</div>
+    <div class="summary-value">{{ booking.service.name }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">When</div>
+    <div class="summary-value">{{ booking.start_at | local_dt('%a %d %b · %H:%M') }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Where</div>
+    <div class="summary-value">
+      {% if booking.customer_address %}{{ booking.customer_address }}<br>{% endif %}
+      <span class="muted" style="font-weight:400;">{{ booking.customer_postcode }}</span>
+    </div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Deposit paid</div>
+    <div class="summary-value">{{ booking.deposit_pence | pence_to_pounds }}</div>
+  </div>
+</div>
+
+<div class="stack">
+  <a href="{{ url_for('public.manage_booking', token=manage_token) }}" class="btn btn-primary btn-block">Manage booking</a>
+  <a href="{{ url_for('public.trade_page', slug=trade.slug) }}" class="btn btn-secondary btn-block">Back to {{ trade.display_name }}</a>
+</div>
+
+<p class="muted text-center mt-3" style="font-size:12px;">
+  We've sent a confirmation to {{ booking.customer_email }}.<br>
+  Questions? Call {{ trade.contact_name.split()[0] }} on {{ trade.phone }}.
+</p>
+{% endblock %}

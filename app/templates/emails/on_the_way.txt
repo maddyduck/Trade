@@ -1,0 +1,12 @@
+Hi {{ booking.customer_name.split()[0] }},
+
+{{ trade.contact_name.split()[0] }} from {{ trade.business_name }} is on the way ({{ eta_str }}).
+
+{% if track_url -%}
+Track them live here:
+{{ track_url }}
+{%- endif %}
+
+If you need to reach them, call {{ trade.phone }}.
+
+Booking ref: {{ booking.reference }}

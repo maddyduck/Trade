@@ -1,0 +1,44 @@
+{% extends "dashboard/_base.html" %}
+{% from "_form.html" import render_field %}
+{% set active_tab = 'availability' %}
+{% block title %}Availability — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<h1>Availability</h1>
+<p class="muted">Weekly pattern for when you can be booked. Add as many rules as you like per day (e.g. morning + afternoon).</p>
+
+<div class="card mt-3 mb-3">
+  <form method="post" action="{{ url_for('dashboard.availability_add') }}" class="stack">
+    {{ form.hidden_tag() }}
+    {{ render_field(form.weekday) }}
+    <div class="grid-2">
+      {{ render_field(form.start_time, placeholder="09:00") }}
+      {{ render_field(form.end_time, placeholder="17:00") }}
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Add rule</button>
+  </form>
+</div>
+
+<div class="section-label">Current rules</div>
+<div class="stack">
+  {% for r in rules %}
+  <div class="card row-sb">
+    <div>
+      <div class="strong">
+        {% set names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+        {{ names[r.weekday] }}
+      </div>
+      <div class="muted" style="font-size:13px;">{{ r.start_time }} – {{ r.end_time }}</div>
+    </div>
+    <form method="post" action="{{ url_for('dashboard.availability_delete', rule_id=r.id) }}"
+          onsubmit="return confirm('Delete this availability rule?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-ghost" style="color: var(--red);">Remove</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="card text-center muted" style="padding:24px 16px;">
+    No rules yet. Add one above to start taking bookings.
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

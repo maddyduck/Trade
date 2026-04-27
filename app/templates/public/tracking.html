@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}{{ trade.contact_name.split()[0] }} is on the way{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  body { background: var(--cream); }
+  #track-map { height: 60vh; border-radius: 12px; overflow: hidden; margin: 16px 0; }
+  .track-status {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 14px 16px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .track-status .eta { font-size: 32px; font-weight: 700; }
+  .track-status .label { opacity: 0.7; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .track-status.arrived { background: var(--emerald); }
+  .track-status.expired, .track-status.stopped { background: var(--ink-soft); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="screen-title">
+  <h1 style="margin-bottom: 4px;">{{ trade.contact_name.split()[0] }} is on the way</h1>
+  <p class="muted">
+    {{ trade.business_name }} · {{ booking.service.name if booking.service else 'Booking' }} {{ booking.reference }}
+  </p>
+</div>
+
+<div id="status-banner" class="track-status">
+  <div class="label" id="status-label">Connecting…</div>
+  <div class="eta" id="eta-text">—</div>
+</div>
+
+<div id="track-map"></div>
+
+<div class="card card-flat" style="font-size: 13px;">
+  <strong>How this works:</strong> {{ trade.contact_name.split()[0] }} has shared their live location for this trip.
+  The marker updates every 30 seconds while they're on the way and stops when they arrive.
+  Location data is deleted automatically after the trip ends.
+</div>
+
+<script>
+(function() {
+  const TOKEN = "{{ session.public_token }}";
+  const PING_URL = `{{ url_for('public_tracking.ping_json', token=session.public_token) }}`;
+
+  // Default to UK centre until we get a real ping
+  const map = L.map('track-map', {
+    zoomControl: false,
+    attributionControl: false,
+  }).setView([54.6, -6.0], 8);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap',
+  }).addTo(map);
+
+  let marker = null;
+  let circle = null;
+  let pollTimer = null;
+
+  function setStatus(label, eta, mood) {
+    document.getElementById('status-label').textContent = label;
+    document.getElementById('eta-text').textContent = eta;
+    const banner = document.getElementById('status-banner');
+    banner.className = 'track-status' + (mood ? ' ' + mood : '');
+  }
+
+  function updateMarker(lat, lng) {
+    if (!marker) {
+      marker = L.marker([lat, lng]).addTo(map);
+      map.setView([lat, lng], 14);
+    } else {
+      marker.setLatLng([lat, lng]);
+    }
+  }
+
+  async function tick() {
+    try {
+      const r = await fetch(PING_URL, { cache: 'no-store' });
+      const data = await r.json();
+
+      if (data.status === 'arrived') {
+        setStatus("Arrived", "✓", 'arrived');
+        if (pollTimer) clearInterval(pollTimer);
+        return;
+      }
+      if (data.status === 'expired') {
+        setStatus("Tracking ended", "Get in touch", 'expired');
+        if (pollTimer) clearInterval(pollTimer);
+        return;
+      }
+      if (data.status === 'stopped') {
+        setStatus("Trip ended", "—", 'stopped');
+        if (pollTimer) clearInterval(pollTimer);
+        return;
+      }
+      if (data.status === 'waiting') {
+        const eta = data.eta_minutes ? `~${data.eta_minutes} min` : 'starting soon';
+        setStatus("Waiting for location", eta);
+        return;
+      }
+
+      // active
+      if (data.lat && data.lng) {
+        updateMarker(data.lat, data.lng);
+        const eta = data.eta_minutes ? `~${data.eta_minutes} min` : 'on the way';
+        setStatus("Live tracking", eta);
+      }
+    } catch (e) {
+      console.error("Ping failed:", e);
+    }
+  }
+
+  tick();
+  pollTimer = setInterval(tick, 30 * 1000);
+})();
+</script>
+{% endblock %}

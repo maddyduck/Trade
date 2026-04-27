@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_form.html" import render_field %}
+{% block title %}Get started — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<h1>Get started</h1>
+<p class="muted">Two minutes to get your booking page live. Payments and availability come next.</p>
+
+<form method="post" class="stack mt-3">
+  {{ form.hidden_tag() }}
+  {{ render_field(form.business_name, placeholder="McKinney Plumbing & Heating") }}
+  {{ render_field(form.contact_name, placeholder="Mark McKinney", autocomplete="name") }}
+  {{ render_field(form.trade_type) }}
+  {{ render_field(form.email, autocomplete="email", inputmode="email") }}
+  {{ render_field(form.phone, autocomplete="tel", inputmode="tel") }}
+  {{ render_field(form.password, autocomplete="new-password", help="At least 8 characters.") }}
+  {{ render_field(form.confirm_password, autocomplete="new-password") }}
+  <button type="submit" class="btn btn-primary btn-block">Create account →</button>
+</form>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('auth.login') }}" class="muted">Already have an account? Sign in →</a>
+</div>
+{% endblock %}

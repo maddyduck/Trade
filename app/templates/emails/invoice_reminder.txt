@@ -1,0 +1,26 @@
+{% if tone == 'friendly' -%}
+Hi {{ booking.customer_name.split()[0] }},
+
+Just a friendly reminder that invoice {{ invoice.number }} from {{ trade.business_name }} is now {{ days_overdue }} days past due.
+{%- elif tone == 'firm' -%}
+Hi {{ booking.customer_name.split()[0] }},
+
+Invoice {{ invoice.number }} from {{ trade.business_name }} is now {{ days_overdue }} days overdue and needs settling.
+{%- else -%}
+Hi {{ booking.customer_name.split()[0] }},
+
+This is a final reminder about invoice {{ invoice.number }} from {{ trade.business_name }}, now {{ days_overdue }} days overdue.
+
+If you don't intend to pay, please reply to let us know so we can stop sending these.
+{%- endif %}
+
+Amount due: £{{ '%.2f' % (invoice.amount_due_pence / 100) }}
+
+{% if invoice.stripe_payment_link_url -%}
+Pay online here:
+{{ invoice.stripe_payment_link_url }}
+{%- endif %}
+
+If there's a problem with the invoice or you've already paid, reply to this email and we'll get it sorted.
+
+— {{ trade.contact_name.split()[0] }}, {{ trade.business_name }}

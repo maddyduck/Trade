@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Check your inbox{% endblock %}
+{% block content %}
+<div class="success-hero">
+  <div class="success-circle" style="background: var(--amber);">✉</div>
+  <h1 class="mt-3">Link on the way</h1>
+  {% if contact %}
+    <p class="muted">If a booking exists for <strong>{{ contact }}</strong>, you'll get a link within a minute or two.</p>
+  {% else %}
+    <p class="muted">If a booking exists, you'll get a link within a minute or two.</p>
+  {% endif %}
+</div>
+
+<p class="muted text-center mt-3" style="font-size:12px;">
+  Didn't get anything? Check your spam folder, or <a href="{{ url_for('public.lost_reference') }}">try a different address</a>.
+</p>
+{% endblock %}

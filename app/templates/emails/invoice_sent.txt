@@ -1,0 +1,23 @@
+Hi {{ booking.customer_name.split()[0] }},
+
+Thanks for having {{ trade.business_name }} out{% if booking.start_at %} on {{ booking.start_at | local_date }}{% endif %}. Here's your invoice.
+
+Invoice: {{ invoice.number }}
+Total: £{{ '%.2f' % (invoice.total_pence / 100) }}
+{%- if invoice.deposit_pence > 0 %}
+Deposit already paid: −£{{ '%.2f' % (invoice.deposit_pence / 100) }}
+{%- endif %}
+Amount due: £{{ '%.2f' % (invoice.amount_due_pence / 100) }}
+
+Due by: {{ invoice.due_date.strftime('%d %B %Y') if invoice.due_date else 'on receipt' }}
+
+{% if invoice.stripe_payment_link_url -%}
+Pay online here:
+{{ invoice.stripe_payment_link_url }}
+
+(Stripe handles the payment securely, no account needed.)
+{%- endif %}
+
+If you have any questions, just reply to this email.
+
+— {{ trade.contact_name.split()[0] }}, {{ trade.business_name }}

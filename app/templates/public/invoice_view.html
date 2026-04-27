@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ invoice.number }} — {{ trade.business_name }}{% endblock %}
+
+{% block content %}
+<div class="invoice-public">
+  <div class="card mb-3">
+    <div class="row-between">
+      <div>
+        <div class="muted" style="font-size:12px;">From</div>
+        <div class="strong">{{ trade.business_name }}</div>
+        <div class="muted" style="font-size:13px;">{{ trade.contact_name }} · {{ trade.email }}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="muted" style="font-size:12px;">Invoice</div>
+        <div class="strong">{{ invoice.number }}</div>
+        {% if invoice.issued_at %}
+        <div class="muted" style="font-size:12px;">Issued {{ invoice.issued_at | local_date }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <table class="invoice-table">
+      <thead>
+        <tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
+      </thead>
+      <tbody>
+        {% for item in invoice.line_items %}
+        <tr>
+          <td>{{ item.description }}</td>
+          <td class="num">{{ '%.2f' % (item.quantity_milli / 1000) }}</td>
+          <td class="num">£{{ '%.2f' % (item.unit_price_pence / 100) }}</td>
+          <td class="num">£{{ '%.2f' % (item.total_pence / 100) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="invoice-totals">
+      <div class="row-between"><span>Subtotal</span><span>£{{ '%.2f' % (invoice.subtotal_pence / 100) }}</span></div>
+      {% if invoice.is_vat_registered and invoice.vat_pence %}
+      <div class="row-between"><span>VAT ({{ invoice.vat_rate_bps / 100 }}%)</span><span>£{{ '%.2f' % (invoice.vat_pence / 100) }}</span></div>
+      {% endif %}
+      <div class="row-between"><strong>Total</strong><strong>£{{ '%.2f' % (invoice.total_pence / 100) }}</strong></div>
+      {% if invoice.deposit_pence %}
+      <div class="row-between" style="color: var(--emerald);"><span>Deposit paid</span><span>−£{{ '%.2f' % (invoice.deposit_pence / 100) }}</span></div>
+      {% endif %}
+      {% if invoice.amount_paid_pence %}
+      <div class="row-between" style="color: var(--emerald);"><span>Already paid</span><span>−£{{ '%.2f' % (invoice.amount_paid_pence / 100) }}</span></div>
+      {% endif %}
+      <div class="row-between balance-due">
+        <strong>Amount due</strong>
+        <strong>£{{ '%.2f' % (invoice.amount_due_pence / 100) }}</strong>
+      </div>
+    </div>
+  </div>
+
+  {% if invoice.amount_due_pence > 0 and invoice.stripe_payment_link_url %}
+  <div class="stack">
+    <a href="{{ invoice.stripe_payment_link_url }}" class="btn btn-primary btn-block">
+      Pay £{{ '%.2f' % (invoice.amount_due_pence / 100) }} now →
+    </a>
+    <p class="muted text-center" style="font-size:12px;">
+      Secure payment via Stripe. No account needed.
+    </p>
+    <a href="{{ url_for('public_invoices.download_invoice_pdf', number=invoice.number, email=request.args.get('email', '')) }}"
+       class="btn btn-ghost btn-block">Download PDF</a>
+  </div>
+  {% elif invoice.amount_due_pence == 0 %}
+  <div class="card text-center" style="background: var(--emerald-soft);">
+    <strong>This invoice is paid in full. Thanks!</strong>
+  </div>
+  {% endif %}
+
+  {% if invoice.notes %}
+  <div class="card card-flat mt-3" style="font-size:13px;">
+    <div class="muted" style="font-size:12px;">Notes</div>
+    {{ invoice.notes | replace('\n', '<br>') | safe }}
+  </div>
+  {% endif %}
+
+  <div class="text-center mt-3 muted" style="font-size:12px;">
+    Questions? Reply to the email or call {{ trade.phone }}.
+  </div>
+</div>
+{% endblock %}

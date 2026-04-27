@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ APP_NAME }} — booking for NI trades{% endblock %}
+{% block content %}
+<div class="stack-lg" style="padding: 40px 0; text-align:center;">
+  <div>
+    <h1 style="font-size:36px;">Booked in. Sorted.</h1>
+    <p class="muted" style="max-width:440px; margin:0 auto;">The simplest way for Northern Ireland trades to take online bookings and deposits. Stop missed messages, no-shows, and wasted callouts.</p>
+  </div>
+  <div class="row" style="justify-content:center; gap:12px;">
+    <a href="{{ url_for('auth.signup') }}" class="btn btn-primary">I'm a trade — get started</a>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">Sign in</a>
+  </div>
+  <div>
+    <a href="{{ url_for('public.find_booking') }}" class="muted" style="font-size:14px;">Already booked? Find your booking →</a>
+  </div>
+</div>
+{% endblock %}

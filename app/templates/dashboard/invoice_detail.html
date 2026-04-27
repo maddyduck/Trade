@@ -1,0 +1,132 @@
+{% extends "dashboard/_base.html" %}
+{% block title %}{{ invoice.number }} — {{ APP_NAME }}{% endblock %}
+
+{% block dashboard %}
+<div class="screen-title">
+  <a href="{{ url_for('invoices.index') }}" class="back-link">← invoices</a>
+  <h1>{{ invoice.number }}</h1>
+</div>
+
+<div class="card mb-3">
+  <div class="row-between">
+    <div>
+      <div class="muted" style="font-size:12px;">Customer</div>
+      <div class="strong">{{ invoice.booking.customer_name }}</div>
+      <div class="muted" style="font-size:13px;">{{ invoice.booking.customer_email }}</div>
+    </div>
+    <div style="text-align:right;">
+      {% if invoice.status.value == 'draft' %}
+        <span class="status-pill status-muted">Draft</span>
+      {% elif invoice.status.value == 'sent' %}
+        {% if invoice.is_overdue %}
+          <span class="status-pill status-overdue">{{ invoice.days_overdue }}d overdue</span>
+        {% else %}
+          <span class="status-pill">Sent</span>
+        {% endif %}
+      {% elif invoice.status.value == 'partially_paid' %}
+        <span class="status-pill status-amber">Partly paid</span>
+      {% elif invoice.status.value == 'paid' %}
+        <span class="status-pill status-emerald">Paid</span>
+      {% elif invoice.status.value == 'written_off' %}
+        <span class="status-pill status-muted">Written off</span>
+      {% elif invoice.status.value == 'void' %}
+        <span class="status-pill status-muted">Void</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <table class="invoice-table">
+    <thead>
+      <tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
+    </thead>
+    <tbody>
+      {% for item in invoice.line_items %}
+      <tr>
+        <td>{{ item.description }}</td>
+        <td class="num">{{ '%.2f' % (item.quantity_milli / 1000) }}</td>
+        <td class="num">£{{ '%.2f' % (item.unit_price_pence / 100) }}</td>
+        <td class="num">£{{ '%.2f' % (item.total_pence / 100) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="invoice-totals">
+    <div class="row-between"><span>Subtotal</span><span>£{{ '%.2f' % (invoice.subtotal_pence / 100) }}</span></div>
+    {% if invoice.is_vat_registered and invoice.vat_pence %}
+    <div class="row-between"><span>VAT ({{ invoice.vat_rate_bps / 100 }}%)</span><span>£{{ '%.2f' % (invoice.vat_pence / 100) }}</span></div>
+    {% endif %}
+    <div class="row-between"><strong>Total</strong><strong>£{{ '%.2f' % (invoice.total_pence / 100) }}</strong></div>
+    {% if invoice.deposit_pence %}
+    <div class="row-between" style="color: var(--emerald);"><span>Deposit paid</span><span>−£{{ '%.2f' % (invoice.deposit_pence / 100) }}</span></div>
+    {% endif %}
+    {% if invoice.amount_paid_pence %}
+    <div class="row-between" style="color: var(--emerald);"><span>Already paid</span><span>−£{{ '%.2f' % (invoice.amount_paid_pence / 100) }}</span></div>
+    {% endif %}
+    <div class="row-between balance-due">
+      <strong>Amount due</strong>
+      <strong>£{{ '%.2f' % (invoice.amount_due_pence / 100) }}</strong>
+    </div>
+  </div>
+</div>
+
+{% if invoice.notes %}
+<div class="card card-flat mb-3">
+  <div class="muted" style="font-size:12px;">Notes</div>
+  <div>{{ invoice.notes | replace('\n', '<br>') | safe }}</div>
+</div>
+{% endif %}
+
+<div class="stack mb-3">
+  <a href="{{ url_for('invoices.download_pdf', invoice_id=invoice.id) }}"
+     class="btn btn-ghost btn-block">Download PDF</a>
+
+  {% if invoice.status.value == 'draft' %}
+  <form method="post" action="{{ url_for('invoices.send', invoice_id=invoice.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary btn-block">Send to customer →</button>
+  </form>
+  <form method="post" action="{{ url_for('invoices.void', invoice_id=invoice.id) }}"
+        onsubmit="return confirm('Void this draft?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-ghost btn-block">Void draft</button>
+  </form>
+  {% elif invoice.status.value in ['sent', 'partially_paid'] %}
+  {% if invoice.stripe_payment_link_url %}
+  <div class="card card-flat" style="font-size:13px;">
+    Customer payment link:
+    <a href="{{ invoice.stripe_payment_link_url }}" target="_blank" rel="noopener" style="word-break:break-all;">
+      {{ invoice.stripe_payment_link_url }}
+    </a>
+  </div>
+  {% endif %}
+  <form method="post" action="{{ url_for('invoices.resend', invoice_id=invoice.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-ghost btn-block">Resend email</button>
+  </form>
+  <form method="post" action="{{ url_for('invoices.mark_paid', invoice_id=invoice.id) }}" class="card card-flat">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="muted" style="font-size:12px;">Record an out-of-band payment</div>
+    <div class="row-between mt-1">
+      <input type="text" name="amount" placeholder="£ amount" inputmode="decimal" style="flex:1;">
+      <button type="submit" class="btn btn-ghost">Record payment</button>
+    </div>
+  </form>
+  <form method="post" action="{{ url_for('invoices.write_off', invoice_id=invoice.id) }}"
+        onsubmit="return confirm('Write off the remaining balance? This sends no further reminders.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-ghost btn-block">Write off balance</button>
+  </form>
+  {% endif %}
+
+  {% if invoice.chase_count %}
+  <div class="muted text-center" style="font-size:12px;">
+    {{ invoice.chase_count }} reminder{% if invoice.chase_count != 1 %}s{% endif %} sent
+    {% if invoice.last_chase_at %}
+    · last on {{ invoice.last_chase_at | local_date }}
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+New booking — {{ booking.start_at.strftime('%a %d %b at %H:%M') }}
+
+{{ booking.customer_name }} ({{ booking.customer_phone }})
+{{ booking.service.name }} · {{ booking.deposit_pence | pence_to_pounds }} deposit paid
+{{ booking.customer_postcode }}{% if booking.customer_address %} — {{ booking.customer_address }}{% endif %}
+
+Notes from customer:
+{{ booking.job_notes or '(none)' }}
+
+Reference: {{ booking.reference }}
+
+Open in dashboard: https://sorted.ni/dashboard/bookings/{{ booking.id }}

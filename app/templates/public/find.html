@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_form.html" import render_field %}
+{% block title %}Find your booking{% endblock %}
+{% block content %}
+<h1>Find your booking</h1>
+<p class="muted">Look up your booking to reschedule, cancel, or check the details.</p>
+
+<form method="post" class="stack mt-3">
+  {{ form.hidden_tag() }}
+  {{ render_field(form.reference, placeholder="MMK-4827-3F", help="From your confirmation email or text.") }}
+  {{ render_field(form.contact, placeholder="sarah@example.com or 07712...", help="The phone or email you used to book.") }}
+  <button type="submit" class="btn btn-primary btn-block">Find my booking →</button>
+</form>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('public.lost_reference') }}" class="muted" style="font-size:13px;">
+    Lost your reference? Send me a link →
+  </a>
+</div>
+{% endblock %}

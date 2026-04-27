@@ -1,0 +1,29 @@
+{% extends "dashboard/_base.html" %}
+{% set active_tab = 'history' %}
+{% block title %}History — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<h1>History</h1>
+<p class="muted">Past bookings from the last 8 weeks. Totals only count completed jobs.</p>
+
+{% if buckets %}
+  {% for bucket in buckets %}
+  <div class="mb-3 mt-3">
+    <div class="row-sb mb-2">
+      <div class="section-label" style="margin:0;">{{ bucket.label }}</div>
+      <div class="muted" style="font-size:12px;">
+        {{ bucket.complete }} done · {{ bucket.total_pence | pence_to_pounds }}
+      </div>
+    </div>
+    <div class="stack">
+      {% for b in bucket.rows %}
+        {% include "dashboard/_booking_row.html" %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card text-center muted mt-3" style="padding:32px 16px;">
+    No past bookings yet.
+  </div>
+{% endif %}
+{% endblock %}

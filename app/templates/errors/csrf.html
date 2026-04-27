@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Session expired{% endblock %}
+{% block content %}
+<div class="success-hero">
+  <div class="success-circle" style="background: var(--amber);">↻</div>
+  <h1 class="mt-3">Session expired</h1>
+  <p class="muted">For security, please refresh the page and try again.</p>
+  <a href="{{ url_for('public.home') }}" class="btn btn-primary mt-3">Start again</a>
+</div>
+{% endblock %}

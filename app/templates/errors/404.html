@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Not found{% endblock %}
+{% block content %}
+<div class="success-hero">
+  <div class="success-circle" style="background:#78716C;">?</div>
+  <h1 class="mt-3">Not found</h1>
+  <p class="muted">This page doesn't exist — or maybe the trade hasn't published their booking page yet.</p>
+  <a href="{{ url_for('public.home') }}" class="btn btn-primary mt-3">Home</a>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong{% endblock %}
+{% block content %}
+<div class="success-hero">
+  <div class="success-circle" style="background: var(--red);">!</div>
+  <h1 class="mt-3">Something went wrong</h1>
+  <p class="muted">We've been notified. Try again in a moment.</p>
+  <a href="{{ url_for('public.home') }}" class="btn btn-primary mt-3">Back to start</a>
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "dashboard/_base.html" %}
+{% from "_form.html" import render_field, render_checkbox %}
+{% set active_tab = 'profile' %}
+{% block title %}Profile — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<h1>More</h1>
+
+<div class="card mb-3">
+  <div class="row">
+    <div class="trade-avatar trade-avatar-sm">
+      {% set parts = current_user.contact_name.split() %}
+      {{ (parts[0][0] + (parts[-1][0] if parts|length > 1 else ''))|upper }}
+    </div>
+    <div>
+      <div class="strong">{{ current_user.business_name }}</div>
+      <div class="muted" style="font-size:12px;">
+        {{ request.host_url }}{{ current_user.slug }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">Booking page</div>
+<div class="stack mb-3">
+  <a href="{{ url_for('dashboard.availability') }}" class="card-link">
+    <div class="strong">Availability</div>
+    <div class="muted" style="font-size:12px;">
+      {% set count = current_user.availability_rules|length %}
+      {% if count %}{{ count }} rule{% if count != 1 %}s{% endif %}{% else %}Not set — you can't be booked yet{% endif %}
+    </div>
+  </a>
+  <a href="{{ url_for('dashboard.services') }}" class="card-link">
+    <div class="strong">Services</div>
+    <div class="muted" style="font-size:12px;">{{ current_user.services|length }} service{% if current_user.services|length != 1 %}s{% endif %}</div>
+  </a>
+  <a href="{{ url_for('dashboard.history') }}" class="card-link">
+    <div class="strong">History</div>
+    <div class="muted" style="font-size:12px;">Past bookings and earnings</div>
+  </a>
+  <a href="{{ url_for('public.trade_page', slug=current_user.slug) }}" target="_blank" rel="noopener" class="card-link">
+    <div class="strong">Preview your page</div>
+    <div class="muted" style="font-size:12px;">See what customers see</div>
+  </a>
+</div>
+
+<div class="section-label">Share with customers</div>
+<div class="card mb-3">
+  {% set page_url = url_for('public.trade_page', slug=current_user.slug, _external=True) %}
+  {% set wa_msg = 'Hi! You can now book me online and pay a deposit to lock in your slot: ' ~ page_url %}
+  <p class="muted" style="font-size:12px; margin-top:0;">
+    Send your booking link to customers in WhatsApp, by text, or email.
+  </p>
+  <div class="mono" style="font-size:13px; padding: 8px 10px; background: var(--cream-deep); border-radius: 8px; word-break: break-all;">
+    {{ page_url }}
+  </div>
+  <div class="row mt-2" style="gap: 6px;">
+    <a class="btn btn-whatsapp"
+       style="flex:1;"
+       href="https://wa.me/?text={{ wa_msg | urlencode }}"
+       target="_blank" rel="noopener">
+      💬 Share on WhatsApp
+    </a>
+    <button type="button" class="btn btn-ghost" id="copy-link-btn"
+            data-url="{{ page_url }}" style="flex:1;">📋 Copy link</button>
+  </div>
+  <script>
+    document.getElementById('copy-link-btn')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      try {
+        await navigator.clipboard.writeText(btn.dataset.url);
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+      } catch {
+        alert('Could not copy. Long-press the URL to copy it manually.');
+      }
+    });
+  </script>
+</div>
+
+<div class="section-label">Payments</div>
+<div class="stack mb-3">
+  <div class="card">
+    <div class="row-sb">
+      <div>
+        <div class="strong">Stripe</div>
+        <div class="muted" style="font-size:12px;">
+          {% if current_user.stripe_charges_enabled %}
+            ✓ Connected — you can take deposits
+          {% elif current_user.stripe_account_id %}
+            Onboarding in progress
+          {% else %}
+            Not connected — set this up to take deposits
+          {% endif %}
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('dashboard.stripe_connect') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-ghost">
+          {% if current_user.stripe_account_id %}Manage{% else %}Connect{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">Profile &amp; policies</div>
+<form method="post" class="stack">
+  {{ form.hidden_tag() }}
+  {{ render_field(form.business_name) }}
+  {{ render_field(form.contact_name) }}
+  {{ render_field(form.phone) }}
+  {{ render_field(form.bio, help="A few lines about you, shown on your booking page.") }}
+  {{ render_field(form.service_area, placeholder="Belfast, Lisburn, Holywood", help="Comma-separated.") }}
+  {{ render_field(form.credentials, help="Gas Safe, NICEIC, insurance details. Separate with |.") }}
+  {{ render_field(form.years_active) }}
+  {{ render_field(form.cancellation_policy) }}
+  {{ render_checkbox(form.is_published) }}
+  <button type="submit" class="btn btn-primary btn-block">Save profile</button>
+</form>
+{% endblock %}

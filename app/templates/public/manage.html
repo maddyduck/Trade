@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Your booking — {{ booking.reference }}{% endblock %}
+{% block content %}
+<h1>Your booking</h1>
+<div class="mono muted mt-0" style="font-size:13px;">{{ booking.reference }}</div>
+
+<div class="mt-3 mb-3">
+  {% set status = booking.status.value %}
+  {% if status == 'booked' %}
+    <span class="status status-amber">Booked</span>
+  {% elif status == 'on_the_way' %}
+    <span class="status status-blue">On the way</span>
+  {% elif status == 'arrived' %}
+    <span class="status status-indigo">Arrived</span>
+  {% elif status == 'in_progress' %}
+    <span class="status status-emerald">In progress</span>
+  {% elif status == 'complete' %}
+    <span class="status status-stone">Complete</span>
+  {% elif status == 'cancelled' %}
+    <span class="status status-red">Cancelled</span>
+  {% elif status == 'no_show' %}
+    <span class="status status-red">No-show</span>
+  {% elif status == 'pending_payment' %}
+    <span class="status status-amber">Pending payment</span>
+  {% endif %}
+</div>
+
+<div class="summary mb-3">
+  <div class="summary-row">
+    <div class="summary-label">Trade</div>
+    <div class="summary-value">{{ booking.trade.business_name }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Service</div>
+    <div class="summary-value">{{ booking.service.name }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">When</div>
+    <div class="summary-value">{{ booking.start_at | local_dt('%a %d %b · %H:%M') }}</div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Where</div>
+    <div class="summary-value">
+      {% if booking.customer_address %}{{ booking.customer_address }}<br>{% endif %}
+      <span class="muted" style="font-weight:400;">{{ booking.customer_postcode }}</span>
+    </div>
+  </div>
+  <div class="summary-row">
+    <div class="summary-label">Deposit paid</div>
+    <div class="summary-value">{{ booking.deposit_pence | pence_to_pounds }}</div>
+  </div>
+</div>
+
+<div class="stack">
+  <a href="tel:{{ booking.trade.phone }}" class="btn btn-secondary btn-block">
+    Call {{ booking.trade.contact_name.split()[0] }} · {{ booking.trade.phone }}
+  </a>
+  {% if not booking.is_terminal and booking.status.value != 'pending_payment' %}
+    <form method="post" action="{{ url_for('public.cancel_booking', token=token) }}"
+          onsubmit="return confirm('Cancel this booking? You can\'t undo this.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger-outline btn-block">Cancel booking</button>
+    </form>
+  {% endif %}
+</div>
+
+{% if not booking.is_terminal %}
+<div class="section-label mt-3">Photos for the trade</div>
+<div class="card mb-3">
+  <p class="muted" style="font-size:13px; margin-top:0;">
+    Adding photos of the issue helps {{ booking.trade.contact_name.split()[0] }} prepare and bring the right tools.
+  </p>
+
+  {% if booking.photos %}
+  <div class="photo-grid">
+    {% for p in booking.photos %}
+    <div class="photo-thumb">
+      <a href="{{ p.public_url }}" target="_blank">
+        <img src="{{ p.thumbnail_url or p.public_url }}" alt="">
+      </a>
+      <form method="post" action="{{ url_for('public.delete_photo', token=token, photo_id=p.id) }}"
+            class="photo-delete" onsubmit="return confirm('Remove this photo?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-icon" title="Remove">×</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% set max_photos = config.get('MAX_PHOTOS_PER_BOOKING', 3) %}
+  {% if booking.photos|length < max_photos %}
+  <form method="post" action="{{ url_for('public.upload_photo', token=token) }}"
+        enctype="multipart/form-data" class="mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="btn btn-ghost btn-block">
+      Add a photo ({{ max_photos - booking.photos|length }} left)
+      <input type="file" name="photo" accept="image/*" capture="environment"
+             style="display:none;" onchange="this.form.submit()">
+    </label>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if booking.trade.cancellation_policy and not booking.is_terminal %}
+<div class="card card-flat mt-3" style="font-size:12px;">
+  <strong>Cancellation:</strong>
+  {% if booking.trade.cancellation_policy == "24h_full" %}
+    Full refund if you cancel at least 24 hours before your slot.
+  {% elif booking.trade.cancellation_policy == "24h_partial" %}
+    Full refund 24h+ before, 50% under 24h, none under 2h.
+  {% else %}
+    Deposit is non-refundable.
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

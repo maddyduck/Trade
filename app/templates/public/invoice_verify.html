@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Find your invoice — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="auth-container">
+  <h1>Verify your invoice</h1>
+  <p class="muted">
+    For security, we need to confirm you're the customer this invoice was issued to.
+  </p>
+
+  <form method="get" class="card mt-3">
+    <label for="email">Email used for the booking</label>
+    <input type="email" name="email" id="email" required autocomplete="email">
+    <button type="submit" class="btn btn-primary btn-block mt-2">View invoice</button>
+  </form>
+
+  <p class="muted text-center mt-3" style="font-size:12px;">
+    Or use the direct link from the invoice email.
+  </p>
+</div>
+{% endblock %}

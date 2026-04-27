@@ -1,0 +1,112 @@
+{% extends "dashboard/_base.html" %}
+{% from "_form.html" import render_field, render_checkbox %}
+{% block title %}New invoice — {{ APP_NAME }}{% endblock %}
+
+{% block dashboard %}
+<div class="screen-title">
+  <a href="{{ url_for('dashboard.booking_detail', booking_id=booking.id) }}" class="back-link">← back</a>
+  <h1>New invoice</h1>
+</div>
+
+<div class="card card-flat mb-3">
+  <div class="muted" style="font-size:12px;">Customer</div>
+  <div class="strong">{{ booking.customer_name }}</div>
+  <div class="muted" style="font-size:13px;">
+    {{ booking.customer_email }} · ref {{ booking.reference }}
+  </div>
+  {% if booking.payment_status.value == 'paid' %}
+  <div class="mt-2" style="font-size:13px;">
+    <span class="status-pill status-emerald">Deposit paid</span>
+    £{{ '%.2f' % (booking.deposit_pence / 100) }} will be deducted from the total.
+  </div>
+  {% endif %}
+</div>
+
+<form method="post" class="stack" id="invoice-form">
+  {{ form.hidden_tag() }}
+
+  <div class="section-label">Line items</div>
+  <div id="line-items-table">
+    {% for item in line_items %}
+    <div class="line-item-row" data-idx="{{ loop.index0 }}">
+      <input type="text" name="li-d-{{ loop.index0 }}" placeholder="Description"
+             value="{{ item.description }}" required>
+      <input type="text" name="li-q-{{ loop.index0 }}" placeholder="Qty" inputmode="decimal"
+             value="{{ item.quantity }}" style="width:70px;">
+      <input type="text" name="li-p-{{ loop.index0 }}" placeholder="£ unit price" inputmode="decimal"
+             value="{{ item.unit_price }}" style="width:110px;" required>
+      <button type="button" class="btn-icon line-item-remove" title="Remove">×</button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <button type="button" id="add-line-btn" class="btn btn-ghost btn-block">+ Add line item</button>
+
+  <div class="section-label mt-3">VAT</div>
+  {{ render_checkbox(form.is_vat_registered) }}
+  <div id="vat-fields" style="display:none;">
+    {{ render_field(form.vat_number, placeholder="GB123456789") }}
+    {{ render_field(form.vat_rate) }}
+  </div>
+
+  <div class="section-label mt-3">Notes & terms</div>
+  {{ render_field(form.notes, rows=3, placeholder="Optional. Visible to customer on the invoice.") }}
+  {{ render_field(form.payment_terms_days) }}
+
+  <button type="submit" class="btn btn-primary btn-block">Save as draft →</button>
+  <p class="muted text-center" style="font-size:12px;">
+    You'll be able to review and send on the next page.
+  </p>
+</form>
+
+<script>
+(function() {
+  const table = document.getElementById('line-items-table');
+  const addBtn = document.getElementById('add-line-btn');
+  const vatCheckbox = document.querySelector('[name="is_vat_registered"]');
+  const vatFields = document.getElementById('vat-fields');
+
+  function rerunIndices() {
+    const rows = table.querySelectorAll('.line-item-row');
+    rows.forEach((r, i) => {
+      r.dataset.idx = i;
+      r.querySelectorAll('input').forEach(inp => {
+        const parts = inp.name.split('-');
+        if (parts.length === 3) {
+          inp.name = `${parts[0]}-${parts[1]}-${i}`;
+        }
+      });
+    });
+  }
+
+  addBtn.addEventListener('click', () => {
+    const idx = table.querySelectorAll('.line-item-row').length;
+    const row = document.createElement('div');
+    row.className = 'line-item-row';
+    row.dataset.idx = idx;
+    row.innerHTML = `
+      <input type="text" name="li-d-${idx}" placeholder="Description" required>
+      <input type="text" name="li-q-${idx}" placeholder="Qty" value="1" inputmode="decimal" style="width:70px;">
+      <input type="text" name="li-p-${idx}" placeholder="£ unit price" inputmode="decimal" style="width:110px;" required>
+      <button type="button" class="btn-icon line-item-remove" title="Remove">×</button>
+    `;
+    table.appendChild(row);
+  });
+
+  table.addEventListener('click', (e) => {
+    if (e.target.classList.contains('line-item-remove')) {
+      e.target.closest('.line-item-row').remove();
+      rerunIndices();
+    }
+  });
+
+  function syncVatFields() {
+    vatFields.style.display = vatCheckbox.checked ? 'block' : 'none';
+  }
+  if (vatCheckbox) {
+    vatCheckbox.addEventListener('change', syncVatFields);
+    syncVatFields();
+  }
+})();
+</script>
+{% endblock %}

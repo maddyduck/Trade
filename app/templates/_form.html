@@ -1,0 +1,20 @@
+{% macro render_field(field, placeholder=None, autocomplete=None, inputmode=None, help=None) %}
+<div class="field">
+  {{ field.label }}
+  {% set attrs = {"class_": "", "placeholder": placeholder or ""} %}
+  {% if autocomplete %}{% set _ = attrs.update({"autocomplete": autocomplete}) %}{% endif %}
+  {% if inputmode %}{% set _ = attrs.update({"inputmode": inputmode}) %}{% endif %}
+  {{ field(**attrs) }}
+  {% if help %}<div class="muted" style="font-size:11px;margin-top:4px;">{{ help }}</div>{% endif %}
+  {% for err in field.errors %}
+    <div class="field-error">{{ err }}</div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro render_checkbox(field) %}
+<label class="checkbox-row">
+  {{ field() }}
+  <span>{{ field.label.text }}</span>
+</label>
+{% endmacro %}

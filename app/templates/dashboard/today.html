@@ -1,0 +1,118 @@
+{% extends "dashboard/_base.html" %}
+{% set active_tab = 'today' %}
+{% block title %}Today — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <div class="muted" style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">
+    {{ today_local.strftime('%A %d %B') }}
+  </div>
+  <h1 class="mt-1">Morning, {{ current_user.contact_name.split()[0] }}</h1>
+</div>
+
+{% if show_onboarding %}
+{% set done = [onboarding.services, onboarding.availability, onboarding.stripe, onboarding.published]|select|list|length %}
+<div class="card mb-3" style="padding:16px;">
+  <div class="row-sb mb-2">
+    <div class="strong">Get ready to take bookings</div>
+    <div class="muted" style="font-size:12px;">{{ done }} of 4 done</div>
+  </div>
+  <div style="height:6px; background:var(--cream-deep); border-radius:99px; overflow:hidden;" class="mb-3">
+    <div style="height:100%; background:var(--amber); width:{{ (done/4*100)|round }}%; transition: width 0.3s ease;"></div>
+  </div>
+
+  <div class="stack" style="gap:6px;">
+    {% set items = [
+      (onboarding.services, 'Add your services', 'What you do and what you charge.', url_for('dashboard.services')),
+      (onboarding.availability, 'Set your availability', 'When customers can book you.', url_for('dashboard.availability')),
+      (onboarding.stripe, 'Connect Stripe', 'So you can take deposits.', url_for('dashboard.profile')),
+      (onboarding.published, 'Publish your page', 'Make it visible to customers.', url_for('dashboard.profile'))
+    ] %}
+    {% for done_, title, sub, href in items %}
+    <a href="{{ href }}" class="onboarding-row {% if done_ %}onboarding-row-done{% endif %}">
+      <div class="onboarding-check">
+        {% if done_ %}✓{% else %}{{ loop.index }}{% endif %}
+      </div>
+      <div style="flex:1; min-width:0;">
+        <div class="strong" style="font-size:14px;">{{ title }}</div>
+        <div class="muted" style="font-size:11px;">{{ sub }}</div>
+      </div>
+      {% if not done_ %}<div class="muted" style="font-size:18px;">→</div>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if done == 4 and not onboarding.first_booking %}
+  <div class="card card-flat mt-3" style="background:var(--amber-soft); border:1px solid var(--amber-border);">
+    <div class="strong" style="color:#92400E;">You're all set.</div>
+    <div style="font-size:13px; color:#78716C; margin-top:4px;">
+      Share your booking page with customers to get your first booking.
+    </div>
+    <a href="{{ url_for('public.trade_page', slug=current_user.slug) }}" target="_blank" rel="noopener" class="btn btn-primary mt-2" style="min-height:40px; padding:10px 14px;">
+      View my page →
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if onboarding.stripe %}
+<div class="earnings-card mb-3">
+  <div class="earnings-label">This week's deposits</div>
+  <div class="earnings-amount">{{ deposits_week_pence | pence_to_pounds }}</div>
+  <div class="earnings-sub">
+    {% if deposits_week_pence > 0 %}Next payout Friday{% else %}No deposits yet this week{% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if next_up %}
+<div class="section-label">Next up</div>
+<a href="{{ url_for('dashboard.booking_detail', booking_id=next_up.id) }}" class="next-up mb-3">
+  <div class="row-sb">
+    <div>
+      <div class="when">{{ next_up.start_at | local_time }}</div>
+      <div class="who">{{ next_up.customer_name }}</div>
+      <div class="what">{{ next_up.service.name }}</div>
+      <div class="where">📍 {{ next_up.customer_address or next_up.customer_postcode }}</div>
+    </div>
+    <div style="font-size:28px;">{{ next_up.service.icon or '🔧' }}</div>
+  </div>
+</a>
+{% endif %}
+
+{% if todays %}
+<div class="row-sb mb-2">
+  <div class="section-label" style="margin:0;">Today · {{ todays|length }} callouts</div>
+  <div class="muted" style="font-size:11px;">{{ done_today }}/{{ todays|length }} done · {{ deposits_today_pence | pence_to_pounds }}</div>
+</div>
+<div class="stack mb-3">
+  {% for b in todays %}
+  {% include "dashboard/_booking_row.html" %}
+  {% endfor %}
+</div>
+{% elif not show_onboarding %}
+<div class="card text-center muted mb-3" style="padding:32px 16px;">
+  No bookings today. Share your page to get some.
+</div>
+{% endif %}
+
+{% if tomorrows %}
+<div class="row-sb mb-2">
+  <div class="section-label" style="margin:0;">Tomorrow</div>
+  <div class="muted" style="font-size:11px;">{{ tomorrows|length }} callouts</div>
+</div>
+<div class="stack" style="opacity:0.85;">
+  {% for b in tomorrows %}
+  {% include "dashboard/_booking_row.html" %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not show_onboarding %}
+<div class="mt-4 mb-4 text-center">
+  <a href="{{ url_for('public.trade_page', slug=current_user.slug) }}" target="_blank" rel="noopener" class="btn btn-secondary">
+    Share your booking page
+  </a>
+</div>
+{% endif %}
+{% endblock %}

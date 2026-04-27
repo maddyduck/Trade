@@ -1,0 +1,82 @@
+{% extends "dashboard/_base.html" %}
+{% set active_tab = 'invoices' %}
+{% block title %}Invoices — {{ APP_NAME }}{% endblock %}
+
+{% block dashboard %}
+<div class="screen-title">
+  <h1>Invoices</h1>
+</div>
+
+{% if total_outstanding %}
+<div class="next-up-card mb-3">
+  <div class="muted-on-dark">Owed to you</div>
+  <div class="big-number">£{{ '%.2f' % (total_outstanding / 100) }}</div>
+  <div class="muted-on-dark">across {{ outstanding|length }} invoice{% if outstanding|length != 1 %}s{% endif %}</div>
+</div>
+{% endif %}
+
+{% if outstanding %}
+<div class="section-label">Outstanding</div>
+<div class="stack mb-3">
+  {% for inv in outstanding %}
+  <a href="{{ url_for('invoices.show', invoice_id=inv.id) }}" class="card-link">
+    <div class="row-between">
+      <div class="strong">{{ inv.number }}</div>
+      <div class="strong">£{{ '%.2f' % (inv.amount_due_pence / 100) }}</div>
+    </div>
+    <div class="row-between mt-1">
+      <div class="muted" style="font-size:12px;">{{ inv.booking.customer_name }}</div>
+      <div style="font-size:12px;">
+        {% if inv.is_overdue %}
+          <span class="status-pill status-overdue">{{ inv.days_overdue }}d overdue</span>
+        {% else %}
+          <span class="muted">Due {{ inv.due_date.strftime('%d %b') if inv.due_date else '—' }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if drafts %}
+<div class="section-label">Drafts</div>
+<div class="stack mb-3">
+  {% for inv in drafts %}
+  <a href="{{ url_for('invoices.show', invoice_id=inv.id) }}" class="card-link">
+    <div class="row-between">
+      <div class="strong">{{ inv.number }} <span class="muted" style="font-weight:normal;">(draft)</span></div>
+      <div>£{{ '%.2f' % (inv.total_pence / 100) }}</div>
+    </div>
+    <div class="muted mt-1" style="font-size:12px;">{{ inv.booking.customer_name }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if paid_recent %}
+<div class="section-label">Recently paid</div>
+<div class="stack mb-3">
+  {% for inv in paid_recent %}
+  <a href="{{ url_for('invoices.show', invoice_id=inv.id) }}" class="card-link">
+    <div class="row-between">
+      <div>{{ inv.number }}</div>
+      <div class="muted">£{{ '%.2f' % (inv.total_pence / 100) }}</div>
+    </div>
+    <div class="muted mt-1" style="font-size:12px;">
+      {{ inv.booking.customer_name }} — paid {{ inv.paid_at | local_date if inv.paid_at }}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not outstanding and not drafts and not paid_recent %}
+<div class="empty-state">
+  <p>No invoices yet.</p>
+  <p class="muted" style="font-size:13px;">
+    When you mark a booking complete, you can invoice it from the booking page.
+  </p>
+</div>
+{% endif %}
+{% endblock %}
