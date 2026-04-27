@@ -1,0 +1,85 @@
+# Render.com infrastructure-as-code blueprint.
+# https://render.com/docs/blueprint-spec
+#
+# Deploy flow:
+#   1. Commit this file to main.
+#   2. Render dashboard → New → Blueprint → select this repo.
+#   3. Fill in the sync=false secrets (Stripe keys).
+#   4. First deploy runs `build` then `start` (which runs migrations).
+#   5. Add https://<your-app>.onrender.com/webhooks/stripe in Stripe dashboard.
+
+services:
+  - type: web
+    name: sorted
+    runtime: python
+    plan: starter   # $7/mo, good enough for <10 trades; bump to standard later
+    region: frankfurt   # closest EU region; Dublin preferable but not available
+    buildCommand: pip install -e .
+    startCommand: flask db upgrade && gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 wsgi:app
+    healthCheckPath: /
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: wsgi.py
+      - key: SECRET_KEY
+        generateValue: true   # Render auto-generates and keeps it stable
+      - key: APP_TIMEZONE
+        value: Europe/London
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sorted-db
+          property: connectionString
+      - key: APP_BASE_URL
+        value: https://sorted.ni   # update once custom domain is attached
+      - key: MAIL_BACKEND
+        value: smtp
+      - key: MAIL_FROM
+        value: Sorted <bookings@sorted.ni>
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_CONNECT_CLIENT_ID
+        sync: false
+
+  # Hourly sweep of abandoned checkouts. Render cron jobs need a paid plan.
+  - type: cron
+    name: sorted-sweep
+    runtime: python
+    schedule: "*/15 * * * *"   # every 15 min
+    plan: starter
+    buildCommand: pip install -e .
+    startCommand: flask sweep-pending
+    envVars:
+      - fromGroup: sorted   # if you put shared env vars in a group
+      - key: FLASK_APP
+        value: wsgi.py
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sorted-db
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+
+databases:
+  - name: sorted-db
+    plan: starter   # $7/mo Postgres 16
+    databaseName: sorted
+    region: frankfurt
+    postgresMajorVersion: "16"
+    ipAllowList: []   # only internal connections
