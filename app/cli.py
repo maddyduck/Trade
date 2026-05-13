@@ -85,6 +85,17 @@ def register_cli(app: Flask) -> None:
         n = expire_stale_pending()
         click.echo(f"Expired {n} stale pending bookings.")
 
+    @app.cli.command("sweep-tracking")
+    def sweep_tracking():
+        """Mark expired tracking sessions as such and purge their pings.
+
+        Run every few minutes via cron alongside sweep-pending.
+        """
+        from app.services.tracking import sweep_expired_sessions
+
+        n = sweep_expired_sessions()
+        click.echo(f"Swept {n} expired tracking session(s).")
+
     @app.cli.command("reconcile")
     @click.argument("reference")
     def reconcile(reference):
@@ -231,7 +242,7 @@ def register_cli(app: Flask) -> None:
         their booking. Link expires in 24h same as a normal magic link.
         """
         from app.services import bookings as booking_svc
-        from app.services.magic_links import make_booking_token
+        from app.services.magic_links import make_token
         from flask import url_for
 
         b = booking_svc.find_by_reference(reference.upper())
@@ -239,7 +250,7 @@ def register_cli(app: Flask) -> None:
             click.echo("No booking with that reference.")
             return
 
-        token = make_booking_token(b.id, b.customer_email)
+        token = make_token(b.id)
         # Build URL — works in CLI context using SERVER_NAME or APP_BASE_URL
         path = url_for("public.manage_booking", token=token)
         base = app.config.get("APP_BASE_URL", "http://localhost:5000")

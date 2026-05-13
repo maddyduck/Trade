@@ -294,7 +294,7 @@ def _notify_customer_on_the_way(booking, eta_minutes, track_url):
         email_svc.send_email(
             to=booking.customer_email,
             subject=f"{booking.trade.contact_name.split()[0]} is on the way",
-            template="emails/on_the_way",
+            template="on_the_way",
             booking=booking,
             trade=booking.trade,
             eta_str=eta_str,

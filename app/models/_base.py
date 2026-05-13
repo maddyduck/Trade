@@ -7,8 +7,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import BigInteger, DateTime
+from sqlalchemy import BigInteger, DateTime, Integer
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
+
+# SQLite only autoincrements on INTEGER (the rowid alias). BIGINT pk leaves
+# id NULL on insert. Use BigInteger in Postgres, Integer in SQLite tests.
+PkBigInt = BigInteger().with_variant(Integer(), "sqlite")
 
 
 def utcnow() -> datetime:
@@ -30,4 +34,4 @@ class TimestampMixin:
 class IdMixin:
     @declared_attr
     def id(cls) -> Mapped[int]:  # noqa: N805
-        return mapped_column(BigInteger, primary_key=True, autoincrement=True)
+        return mapped_column(PkBigInt, primary_key=True, autoincrement=True)

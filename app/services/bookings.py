@@ -351,7 +351,9 @@ def compute_refund_pence(booking: Booking, *, now_utc: datetime | None = None) -
       non_refundable — no refunds.
     """
     now_utc = now_utc or datetime.now(UTC)
-    hours_to_start = (booking.start_at - now_utc).total_seconds() / 3600
+    # SQLite strips tz info on read; treat naive datetimes as UTC.
+    start_at = booking.start_at if booking.start_at.tzinfo else booking.start_at.replace(tzinfo=UTC)
+    hours_to_start = (start_at - now_utc).total_seconds() / 3600
 
     policy = booking.trade.cancellation_policy or "24h_full"
     deposit = booking.deposit_pence

@@ -15,6 +15,14 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 
+def _normalise_db_url(url: str) -> str:
+    # Render's DATABASE_URL comes back as 'postgresql://...', which SQLAlchemy
+    # resolves to psycopg2. We only ship psycopg3, so pin the driver.
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url[len("postgresql://") :]
+    return url
+
+
 class BaseConfig:
     # Core
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-key-do-not-use-in-prod")
@@ -22,9 +30,11 @@ class BaseConfig:
     APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Europe/London")
 
     # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        "postgresql+psycopg://postgres:dev@localhost:5432/sorted",
+    SQLALCHEMY_DATABASE_URI = _normalise_db_url(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql+psycopg://postgres:dev@localhost:5432/sorted",
+        )
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {

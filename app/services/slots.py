@@ -67,10 +67,15 @@ def _slot_duration(trade: Trade, service: Service) -> timedelta:
     return timedelta(minutes=service.duration_minutes + trade.buffer_minutes)
 
 
+def _as_utc(dt: datetime) -> datetime:
+    # SQLite strips tz info on read; treat naive datetimes as UTC.
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
+
+
 def _collides(start_utc: datetime, end_utc: datetime, bookings: list[Booking]) -> bool:
     """Half-open interval overlap: [a_start, a_end) vs [b_start, b_end)."""
     for b in bookings:
-        if start_utc < b.end_at and b.start_at < end_utc:
+        if start_utc < _as_utc(b.end_at) and _as_utc(b.start_at) < end_utc:
             return True
     return False
 

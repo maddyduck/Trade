@@ -167,7 +167,7 @@ def send_invoice(invoice: Invoice) -> Invoice:
     email_svc.send_email(
         to=booking.customer_email,
         subject=f"Your invoice from {invoice.trade.business_name}",
-        template="emails/invoice_sent",
+        template="invoice_sent",
         invoice=invoice,
         booking=booking,
         trade=invoice.trade,
@@ -296,7 +296,7 @@ def chase_invoice(invoice: Invoice) -> None:
     email_svc.send_email(
         to=booking.customer_email,
         subject=subject,
-        template="emails/invoice_reminder",
+        template="invoice_reminder",
         invoice=invoice,
         booking=booking,
         trade=invoice.trade,
